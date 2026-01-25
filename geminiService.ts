@@ -3,7 +3,7 @@
 import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 import { CrimeCase, Evidence, Witness, TimelineEvent } from "./types";
 
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY;
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 if (!API_KEY) console.warn("Missing VITE_GEMINI_API_KEY");
 
 const genAI = new GoogleGenerativeAI(API_KEY || "");
@@ -51,7 +51,7 @@ export async function analyzeForensicCase(
         }
       }
     }
-  });
+  }, { apiVersion: 'v1' });
 
   const prompt = `
     You are the Lead Forensic Investigator for the F.I.E. (Forensic Insight Engine).

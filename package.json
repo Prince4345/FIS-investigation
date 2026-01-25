@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@google/genai": "^1.38.0",
+    "@google/generative-ai": "^0.24.1",
     "@xyflow/react": "^12.10.0",
     "firebase": "^12.8.0",
     "jspdf": "^4.0.0",

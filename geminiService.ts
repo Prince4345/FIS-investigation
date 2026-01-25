@@ -90,7 +90,9 @@ export async function analyzeForensicCase(
   try {
     const result = await model.generateContent(prompt);
     const responseText = result.response.text();
-    return JSON.parse(responseText);
+    // Clean markdown formatting (Gemini often wraps JSON in backticks)
+    const cleanedText = responseText.replace(/```json\n?|\n?```/g, '').trim();
+    return JSON.parse(cleanedText);
   } catch (e) {
     console.error("Failed to parse AI response:", e);
     return [];

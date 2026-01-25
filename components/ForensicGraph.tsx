@@ -45,9 +45,9 @@ const WitnessNode = ({ data }: NodeProps) => (
         <div className="text-white font-bold text-sm leading-tight">{data.label as string}</div>
         <div className="flex items-center gap-2 mt-2">
             <div className="h-1 flex-1 bg-slate-800 rounded-full overflow-hidden">
-                <div className="h-full bg-emerald-500" style={{ width: `${data.reliability}%` }}></div>
+                <div className="h-full bg-emerald-500" style={{ width: `${data.reliability as number}%` }}></div>
             </div>
-            <span className="text-[9px] text-emerald-500 font-mono">{data.reliability}%</span>
+            <span className="text-[9px] text-emerald-500 font-mono">{data.reliability as number}%</span>
         </div>
     </div>
 );
@@ -66,7 +66,7 @@ const ObservationNode = ({ data }: NodeProps) => (
 
             <div className="inline-flex items-center gap-2 bg-black/20 px-2 py-1 rounded-lg">
                 <span className="w-2 h-2 rounded-full bg-pink-500 animate-pulse"></span>
-                <span className="text-[10px] text-indigo-200 font-mono">CONFIDENCE: {data.confidence}%</span>
+                <span className="text-[10px] text-indigo-200 font-mono">CONFIDENCE: {data.confidence as number}%</span>
             </div>
         </div>
     </div>

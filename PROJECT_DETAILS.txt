@@ -1,0 +1,95 @@
+PROJECT NAME: Forensic Insight Engine (F.I.E.)
+SUBTITLE: The Next-Generation AI Command Center for Criminal Investigations.
+
+---
+
+[ 1. THE PROBLEM ]
+Modern criminal investigations are drowning in data. A single case involves terabytes of digital evidence, hours of witness audio, fragmented timeline data, and conflicting reports.
+-   **Cognitive Overload:** Detectives must mentally cross-reference hundreds of fats, leading to missed connections.
+-   **Manual Reporting:** Dozens of hours are wasted typing up reports and formatting timelines.
+-   **Human Error:** Inconsistencies in witness statements (a key indicator of deception) often go unnoticed in the sheer volume of paperwork.
+-   **Siloed Intelligence:** Data lives in separate folders—photos here, notes there—preventing a holistic view of the crime verification.
+
+[ 2. THE SOLUTION ]
+The **Forensic Insight Engine (F.I.E.)** is not just a database; it is an active **AI Partner** for investigators. It acts as a unified digital workspace that ingests raw case data and uses advanced Large Language Models (Google Gemini 1.5 Flash) to synthesize, analyze, and visualize the investigation.
+
+It transforms "passive data" (files in a folder) into "active intelligence" (a connected graph of leads).
+
+---
+
+[ 3. KEY INNOVATIONS & FEATURES ]
+
+A. The "Deep Scan" Forensic Audit
+The core of F.I.E. is the one-click Audit button. When activated, the system:
+1.  Packets the entire case context (Evidence logs, Transcripts, Times).
+2.  Sends it to Google Gemini 1.5 Flash with a specialized "Forensic Expert" system prompt.
+3.   The AI returns a structured JSON analysis identifying:
+    -   **Inconsistencies:** "Witness A says they were home, but CCTV Evidence B places them at the scene."
+    -   **Timeline Gaps:** "There is an unaccounted 45-minute window following the suspect's departure."
+    -   **Pattern Recognition:** "The MO matches three prior resolved cases in the sector."
+
+B. The Visual Detective Board (Interactive Graph)
+Instead of reading a list, investigators verify the case on a dynamic 2D canvas (built with React Flow).
+-   **Nodes:** Represent Evidence, Suspects, and AI Observations.
+-   **Edges (Lines):** Represent correlations. If the AI detects a lie, it draws a red line connecting the *Witness Node* to the *Evidence Node* that disproves their story.
+-   **User Control:** Detectives can drag, rearrange, and organize their mental model visually.
+
+C. The Digital Evidence Locker
+A secure, encrypted repository for all case artifacts.
+-   Supports images, forensic reports, and witness transcripts.
+-   "Chain of Custody" style tracking (immutable uploads).
+
+D. Human Intelligence (HUMINT) Profiling
+-   Tracks witnesses and suspects.
+-   **Reliability Scoring:** Investigators can assign a credibility score (0-100%) to witnesses. The AI weighs high-credibility witnesses more heavily during analysis.
+
+E. One-Click Dossier Generation
+The system culminates in the "Generate Report" function.
+-   Instantly compiles all data, timeline visualization, and AI findings into a professional, court-ready PDF.
+-   Includes a cover page, executive summary, and stats grid.
+-   Saves officers 10-20 hours of paperwork per case.
+
+---
+
+[ 4. TECHNICAL ARCHITECTURE ]
+
+[ Frontend ]
+-   **Framework:** React 18 (Vite) for blazing fast performance.
+-   **Language:** TypeScript for type-safe, robust code (critical for government-grade software).
+-   **State Management:** React Hooks + Context API for managing complex case states.
+-   **Styling:** Tailwind CSS with a custom "Glassmorphism" design system (Dark Mode native).
+-   **Visualization:** React Flow (xyflow) for the node-based investigative board.
+
+[ Backend & Cloud ]
+-   **Platform:** Firebase (Google Cloud Platform).
+-   **Database:** Cloud Firestore (NoSQL) for real-time syncing of case data across devices.
+-   **Storage:** Firebase Storage for secure evidence file hosting.
+-   **Authentication:** Firebase Auth (Email/Password) to simulate secure departmental access.
+
+[ Artificial Intelligence ]
+-   **Model:** Google Gemini 1.5 Flash.
+-   **Integration:** `@google/genai` SDK.
+-   **Implementation:** We allow the client to interface directly with the model using a secure API key, ensuring low latency.
+-   **Prompt Engineering:** We utilize a "Chain of Thought" prompt strategy, instructing the AI to first timeline the events, then cross-reference, and finally output a strict JSON schema for the frontend to render.
+
+---
+
+[ 5. CHALLENGES WE OVERCAME ]
+
+1.  **AI Hallucination Control:** Early versions of the AI would invent evidence. We solved this by enforcing a "Strict Reference Mode" in the prompt, requiring the AI to cite specific IDs (e.g., `[ev_102]`) for every claim it makes.
+2.  **Visualizing Logic:** converting text-based AI thoughts into a visual graph was difficult. We built a translation layer that parses the AI's JSON output and calculates optimal X/Y coordinates for the nodes on the Detective Board.
+3.  **PDF Generation:** Rendering complex visual data (timelines, analysis) into a static PDF required complex usage of the `jsPDF` library, manually drawing grids and text wrapping.
+
+---
+
+[ 6. FUTURE ROADMAP ]
+
+-   **Phase 2: Voice Dictation.** Detectives can speak their notes directly into the app.
+-   **Phase 3: Geospatial Mapping.** Placing evidence on a Google Map integration.
+-   **Phase 4: Collaboration.** Multiplayer mode where multiple detectives can move nodes on the board simultaneously (using websockets).
+-   **Phase 5: Departmental Deployment.** Role-based access control (Captain vs. Detective).
+
+---
+
+[ 7. WHY THIS MATTERS ]
+Justice delayed is justice denied. By automating the "grunt work" of investigation—sorting, filing, cross-referencing—we free up detectives to do what humans do best: follow their intuition and solve crimes. F.I.E. brings law enforcement technology into the 21st century.

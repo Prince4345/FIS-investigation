@@ -1,0 +1,19 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // 1. User Profile Photos
+    // Allow users to read/write only their own photo folder
+    match /profile_photos/{userId}/{allPaths=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // 2. Case Evidence (Future Proofing)
+    // Allow upload if user is authenticated (simplelling for now, 
+    // ideally check if user owns the case via Firestore lookup if possible, 
+    // but standard auth check is a good baseline)
+    match /case_evidence/{caseId}/{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

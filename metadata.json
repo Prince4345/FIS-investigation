@@ -1,0 +1,7 @@
+{
+  "name": "AI Crime Case Analyzer (Forensic Insight Engine)",
+  "description": "An explainable-AI based forensic analysis platform for crime case organization, evidence tracking, and witness statement analysis with multi-language support (English/Hinglish).",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

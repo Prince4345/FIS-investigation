@@ -1,6 +1,6 @@
 
 // Google Gemini Service (Stable SDK)
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 import { CrimeCase, Evidence, Witness, TimelineEvent } from "./types";
 
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
@@ -16,11 +16,44 @@ export async function analyzeForensicCase(
 ) {
   // 🔥 STEP 2: Unified Simple Config (Prompt Engineering Approach)
   const model = genAI.getGenerativeModel({
-    model: "gemini-1.5-flash",
+    model: "gemini-3-pro-preview",
     generationConfig: {
       temperature: 0.2,
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: SchemaType.ARRAY,
+        items: {
+          type: SchemaType.OBJECT,
+          properties: {
+            id: { type: SchemaType.STRING },
+            type: {
+              type: SchemaType.STRING,
+              format: 'enum',
+              enum: ['inconsistency', 'delay', 'pattern']
+            },
+            observation: { type: SchemaType.STRING },
+            reasoning: { type: SchemaType.STRING },
+            correlations: {
+              type: SchemaType.ARRAY,
+              items: {
+                type: SchemaType.OBJECT,
+                properties: {
+                  sourceType: { type: SchemaType.STRING, format: 'enum', enum: ['evidence', 'witness', 'timeline'] },
+                  refId: { type: SchemaType.STRING },
+                  label: { type: SchemaType.STRING },
+                  snippet: { type: SchemaType.STRING }
+                },
+                required: ['sourceType', 'refId', 'label', 'snippet']
+              }
+            },
+            confidence: { type: SchemaType.NUMBER },
+            limitations: { type: SchemaType.STRING },
+          },
+          required: ['id', 'type', 'observation', 'reasoning', 'correlations', 'confidence', 'limitations']
+        }
+      }
     },
-  }, { apiVersion: 'v1' });
+  });
 
   const prompt = `
     You are the Lead Forensic Investigator for the F.I.E. (Forensic Insight Engine).

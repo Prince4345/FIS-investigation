@@ -26,6 +26,7 @@ export async function analyzeForensicCase(
             id: { type: SchemaType.STRING },
             type: {
               type: SchemaType.STRING,
+              format: 'enum',
               enum: ['inconsistency', 'delay', 'pattern']
             },
             observation: { type: SchemaType.STRING },
@@ -35,7 +36,7 @@ export async function analyzeForensicCase(
               items: {
                 type: SchemaType.OBJECT,
                 properties: {
-                  sourceType: { type: SchemaType.STRING, enum: ['evidence', 'witness', 'timeline'] },
+                  sourceType: { type: SchemaType.STRING, format: 'enum', enum: ['evidence', 'witness', 'timeline'] },
                   refId: { type: SchemaType.STRING },
                   label: { type: SchemaType.STRING },
                   snippet: { type: SchemaType.STRING }

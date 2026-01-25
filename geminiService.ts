@@ -20,7 +20,7 @@ export async function analyzeForensicCase(
     generationConfig: {
       temperature: 0.2,
     },
-  });
+  }, { apiVersion: 'v1' });
 
   const prompt = `
     You are the Lead Forensic Investigator for the F.I.E. (Forensic Insight Engine).

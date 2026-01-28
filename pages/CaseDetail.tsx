@@ -29,6 +29,7 @@ import {
 import { TimelineVisual } from '../components/TimelineVisual';
 import { ObservationCard } from '../components/ObservationCard';
 import { ForensicGraph } from '../components/ForensicGraph';
+import { VoiceRecorder } from '../components/VoiceRecorder';
 import { analyzeForensicCase } from '../geminiService';
 
 interface CaseDetailProps {
@@ -222,212 +223,267 @@ export const CaseDetail: React.FC<CaseDetailProps> = ({ caseId, user, onBack }) 
       const margin = 20;
       let y = 0;
 
+      // Helper: Header on each page
+      const drawHeader = () => {
+        doc.setFillColor(248, 250, 252); // Slate 50
+        doc.rect(0, 0, pageWidth, 25, 'F');
+
+        doc.setFontSize(8);
+        doc.setTextColor(71, 85, 105); // Slate 600
+        doc.setFont(undefined, 'bold');
+        doc.text("FORENSIC INSIGHT ENGINE // CONFIDENTIAL", margin, 15);
+
+        doc.setFont(undefined, 'normal');
+        doc.setTextColor(148, 163, 184); // Slate 400
+        doc.text(`CASE REF: ${caseData.id.toUpperCase()}`, pageWidth - margin, 15, { align: 'right' });
+
+        // Accent Line
+        doc.setDrawColor(99, 102, 241); // Indigo 500
+        doc.setLineWidth(0.5);
+        doc.line(margin, 25, pageWidth - margin, 25);
+      };
+
       // Helper: Auto-Add Page
       const checkPageBreak = (currentY: number, addedHeight: number = 20) => {
         if (currentY + addedHeight > pageHeight - 20) {
           doc.addPage();
-          return 30; // Reset Y to top margin
+          drawHeader();
+          return 40; // Reset Y to top margin + header buffer
         }
         return currentY;
       };
 
       // --- COVER PAGE ---
-      doc.setFillColor(15, 23, 42); // Dark Slate
+      doc.setFillColor(15, 23, 42); // Slate 950
       doc.rect(0, 0, pageWidth, pageHeight, 'F');
 
-      // Logo / Title
+      // Watermark
+      doc.setTextColor(30, 41, 59); // Slate 800
+      doc.setFontSize(60);
+      doc.setFont(undefined, 'bold');
+      doc.text("CLASSIFIED", pageWidth / 2, pageHeight / 2, { align: 'center', angle: 45 });
+
+      // Branding
       doc.setTextColor(255, 255, 255);
-      doc.setFontSize(28);
+      doc.setFontSize(24);
       doc.setFont(undefined, 'bold');
       doc.text("FORENSIC INSIGHT ENGINE", pageWidth / 2, 80, { align: 'center' });
 
-      doc.setTextColor(99, 102, 241); // Indigo
-      doc.setFontSize(12);
+      doc.setTextColor(99, 102, 241); // Indigo 500
+      doc.setFontSize(10);
       doc.setFont(undefined, 'normal');
-      doc.text("CLASSIFIED INVESTIGATION DOSSIER", pageWidth / 2, 90, { align: 'center' });
+      doc.text("ADVANCED AI INVESTIGATION DOSSIER", pageWidth / 2, 90, { align: 'center' });
 
-      // Case Details Box
+      // Case Box
       doc.setDrawColor(255, 255, 255);
       doc.setLineWidth(0.5);
-      doc.line(40, 110, pageWidth - 40, 110);
+      doc.line(margin * 2, 120, pageWidth - (margin * 2), 120);
 
       doc.setTextColor(255, 255, 255);
-      doc.setFontSize(36);
+      doc.setFontSize(32);
       doc.setFont(undefined, 'bold');
-      const titleLines = doc.splitTextToSize(caseData.title.toUpperCase(), pageWidth - 60);
-      doc.text(titleLines, pageWidth / 2, 140, { align: 'center' });
+      const titleLines = doc.splitTextToSize(caseData.title.toUpperCase(), pageWidth - (margin * 4));
+      doc.text(titleLines, pageWidth / 2, 150, { align: 'center' });
 
-      doc.setFontSize(10);
+      // Metadata
+      doc.setFontSize(9);
       doc.setTextColor(148, 163, 184); // Slate 400
-      doc.text(`REFERENCE ID: ${caseId.toUpperCase()}`, pageWidth / 2, 170, { align: 'center' });
-      doc.text(`STATUS: ${caseData.status.toUpperCase()}`, pageWidth / 2, 176, { align: 'center' });
-      doc.text(`LEAD INVESTIGATOR: ${user.displayName?.toUpperCase() || 'UNKNOWN'}`, pageWidth / 2, 182, { align: 'center' });
-      doc.text(`GENERATED: ${new Date().toLocaleString()}`, pageWidth / 2, 188, { align: 'center' });
+      let metaY = 180;
+      doc.text(`CASE ID: ${caseData.id}`, pageWidth / 2, metaY, { align: 'center' }); metaY += 6;
+      doc.text(`STATUS: ${caseData.status.toUpperCase()}`, pageWidth / 2, metaY, { align: 'center' }); metaY += 6;
+      doc.text(`INVESTIGATOR: ${user.displayName?.toUpperCase() || 'UNKNOWN'}`, pageWidth / 2, metaY, { align: 'center' }); metaY += 6;
+      doc.text(`DATE: ${new Date().toLocaleDateString()}`, pageWidth / 2, metaY, { align: 'center' });
 
-      doc.setFontSize(8);
-      doc.setTextColor(71, 85, 105);
-      doc.text("CONFIDENTIAL // EYES ONLY", pageWidth / 2, pageHeight - 20, { align: 'center' });
+      // Warning Footer
+      doc.setFontSize(7);
+      doc.setTextColor(244, 63, 94); // Rose 500
+      doc.text("WARNING: CONTAINS SENSITIVE FORENSIC DATA. AUTHORIZED ACCESS ONLY.", pageWidth / 2, pageHeight - 15, { align: 'center' });
 
       doc.addPage();
 
       // --- INSIDE PAGES ---
-      y = 30;
-
-      // Header on each page
-      const drawHeader = () => {
-        doc.setFillColor(248, 250, 252);
-        doc.rect(0, 0, pageWidth, 20, 'F');
-        doc.setFontSize(8);
-        doc.setTextColor(100, 116, 139);
-        doc.text("FORENSIC INSIGHT ENGINE // V4.0.2", margin, 12);
-        doc.text(`REF: ${caseId.slice(0, 8)}...`, pageWidth - margin, 12, { align: 'right' });
-      };
-
       drawHeader();
+      y = 40;
 
-      // Section 1: Executive Summary
-      doc.setFontSize(14);
+      // 1. Executive Summary
+      doc.setFontSize(12);
       doc.setTextColor(15, 23, 42);
       doc.setFont(undefined, 'bold');
-      doc.text("EXECUTIVE SUMMARY", margin, y);
-      y += 10;
+      doc.text("01 // EXECUTIVE SUMMARY", margin, y);
+      y += 8;
+
       doc.setFontSize(10);
       doc.setFont(undefined, 'normal');
       doc.setTextColor(51, 65, 85);
-      const sumLines = doc.splitTextToSize(caseData.summary || "No summary provided.", pageWidth - (margin * 2));
-      doc.text(sumLines, margin, y);
-      y += (sumLines.length * 5) + 15;
+      const summaryText = doc.splitTextToSize(caseData.summary || "No data.", pageWidth - (margin * 2));
+      doc.text(summaryText, margin, y);
+      y += (summaryText.length * 5) + 15;
 
-      // Section 2: Case Statistics (Grid)
-      y = checkPageBreak(y, 40);
-      doc.setFillColor(241, 245, 249);
-      doc.roundedRect(margin, y, 50, 25, 2, 2, 'F');
-      doc.text("EVIDENCE", margin + 25, y + 8, { align: 'center' });
-      doc.setFontSize(12); doc.setFont(undefined, 'bold');
-      doc.text(evidence.length.toString(), margin + 25, y + 18, { align: 'center' });
+      // 2. Stats Grid
+      y = checkPageBreak(y, 30);
+      const boxWidth = (pageWidth - (margin * 2) - 10) / 3;
+      const stats = [
+        { label: "EVIDENCE", value: evidence.length, color: [99, 102, 241] },
+        { label: "WITNESSES", value: witnesses.length, color: [16, 185, 129] },
+        { label: "TIMELINE", value: timeline.length, color: [245, 158, 11] }
+      ];
 
-      doc.roundedRect(margin + 60, y, 50, 25, 2, 2, 'F');
-      doc.setFontSize(10); doc.setFont(undefined, 'normal');
-      doc.text("WITNESSES", margin + 85, y + 8, { align: 'center' });
-      doc.setFontSize(12); doc.setFont(undefined, 'bold');
-      doc.text(witnesses.length.toString(), margin + 85, y + 18, { align: 'center' });
+      stats.forEach((stat, i) => {
+        const x = margin + (i * (boxWidth + 5));
+        doc.setFillColor(248, 250, 252);
+        doc.setDrawColor(226, 232, 240);
+        doc.roundedRect(x, y, boxWidth, 25, 2, 2, 'FD');
 
-      doc.roundedRect(margin + 120, y, 50, 25, 2, 2, 'F');
-      doc.setFontSize(10); doc.setFont(undefined, 'normal');
-      doc.text("TIMELINE", margin + 145, y + 8, { align: 'center' });
-      doc.setFontSize(12); doc.setFont(undefined, 'bold');
-      doc.text(timeline.length.toString(), margin + 145, y + 18, { align: 'center' });
+        doc.setFontSize(8);
+        doc.setTextColor(100, 116, 139);
+        doc.setFont(undefined, 'bold');
+        doc.text(stat.label, x + (boxWidth / 2), y + 10, { align: 'center' });
 
+        doc.setFontSize(14);
+        doc.setTextColor(stat.color[0], stat.color[1], stat.color[2]);
+        doc.text(stat.value.toString(), x + (boxWidth / 2), y + 20, { align: 'center' });
+      });
       y += 40;
 
-      // Section 3: Evidence Inventory
-      y = checkPageBreak(y);
-      doc.setFontSize(12); doc.setTextColor(99, 102, 241); doc.setFont(undefined, 'bold');
-      doc.text("SECTION I: EVIDENCE INVENTORY", margin, y);
-      doc.line(margin, y + 2, pageWidth - margin, y + 2);
-      y += 15;
-
-      evidence.forEach((e, i) => {
-        y = checkPageBreak(y, 20);
-        doc.setFontSize(10); doc.setTextColor(15, 23, 42); doc.setFont(undefined, 'bold');
-        doc.text(`${i + 1}. ${e.name}`, margin, y);
-        doc.setFontSize(8); doc.setTextColor(100, 116, 139); doc.setFont(undefined, 'normal');
-        doc.text(`[${e.type.toUpperCase()}]`, pageWidth - margin, y, { align: 'right' });
-        y += 5;
-        const desc = doc.splitTextToSize(e.description, pageWidth - (margin * 2) - 10);
-        doc.text(desc, margin + 5, y);
-        y += (desc.length * 4) + 8;
-      });
-      y += 10;
-
-      // Section 4: Witness Statements
-      y = checkPageBreak(y);
-      drawHeader(); // Ensure header on page break if manual
-      doc.setFontSize(12); doc.setTextColor(99, 102, 241); doc.setFont(undefined, 'bold');
-      doc.text("SECTION II: WITNESS STATEMENTS", margin, y);
-      doc.line(margin, y + 2, pageWidth - margin, y + 2);
-      y += 15;
-
-      witnesses.forEach((w, i) => {
-        y = checkPageBreak(y, 30);
-        doc.setFontSize(10); doc.setTextColor(15, 23, 42); doc.setFont(undefined, 'bold');
-        doc.text(`${w.name.toUpperCase()}`, margin, y);
-        doc.setTextColor(w.reliabilityScore > 80 ? 22 : 234, w.reliabilityScore > 80 ? 163 : 179, w.reliabilityScore > 80 ? 74 : 8); // Simple conditional color logic (greenish / brownish)
-        doc.setFontSize(8);
-        doc.text(`CREDIBILITY: ${w.reliabilityScore}%`, pageWidth - margin, y, { align: 'right' });
-        y += 5;
-        doc.setFont(undefined, 'italic'); doc.setTextColor(71, 85, 105);
-        const stmt = doc.splitTextToSize(`"${w.statement}"`, pageWidth - (margin * 2) - 10);
-        doc.text(stmt, margin + 5, y);
-        y += (stmt.length * 4) + 10;
-      });
-      y += 10;
-
-      // Section 5: Timeline
+      // 3. Visual Timeline
       if (timeline.length > 0) {
         y = checkPageBreak(y);
-        doc.setFontSize(12); doc.setTextColor(99, 102, 241); doc.setFont(undefined, 'bold');
-        doc.text("SECTION III: CHRONOLOGICAL TIMELINE", margin, y);
-        doc.line(margin, y + 2, pageWidth - margin, y + 2);
+        doc.setFontSize(12); doc.setTextColor(15, 23, 42); doc.setFont(undefined, 'bold');
+        doc.text("02 // CHRONOLOGICAL RECONSTRUCTION", margin, y);
         y += 15;
 
-        timeline.forEach((t) => {
-          y = checkPageBreak(y, 25);
-          const timeStr = new Date(t.time).toLocaleString();
-          doc.setFontSize(9); doc.setTextColor(15, 23, 42); doc.setFont(undefined, 'bold');
-          doc.text(timeStr, margin, y);
-          doc.text(t.title, margin + 50, y);
+        // Draw vertical line line
+        const lineX = margin + 15;
 
-          y += 5;
-          if (t.description) {
-            doc.setFontSize(8); doc.setTextColor(100, 116, 139); doc.setFont(undefined, 'normal');
-            const desc = doc.splitTextToSize(t.description, pageWidth - margin - 50);
-            doc.text(desc, margin + 50, y);
-            y += (desc.length * 4) + 2;
-          } else {
-            y += 2;
-          }
-          y += 5;
-        });
-      }
-
-      // Section 6: AI Observations
-      if (observations.length > 0) {
-        y += 10;
-        y = checkPageBreak(y);
-        doc.setFontSize(12); doc.setTextColor(99, 102, 241); doc.setFont(undefined, 'bold');
-        doc.text("SECTION IV: AI FORENSIC ANALYSIS", margin, y);
-        doc.line(margin, y + 2, pageWidth - margin, y + 2);
-        y += 15;
-
-        observations.forEach((o) => {
+        timeline.forEach((t, i) => {
           y = checkPageBreak(y, 30);
-          doc.setFillColor(248, 250, 252);
-          doc.roundedRect(margin, y, pageWidth - (margin * 2), 25, 1, 1, 'F');
 
+          // Time Stamp (Left)
+          doc.setFontSize(8); doc.setTextColor(100, 116, 139); doc.setFont(undefined, 'bold');
+          const timeStr = new Date(t.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          const dateStr = new Date(t.time).toLocaleDateString([], { month: 'short', day: 'numeric' });
+          doc.text(timeStr, margin, y);
+          doc.setFontSize(7); doc.setFont(undefined, 'normal');
+          doc.text(dateStr, margin, y + 4);
+
+          // Dot and Line
+          doc.setDrawColor(203, 213, 225); // Slate 300
+          doc.setLineWidth(0.5);
+          if (i < timeline.length - 1) {
+            doc.line(lineX, y - 2, lineX, y + 25); // Vertical connector
+          }
+
+          doc.setFillColor(255, 255, 255);
+          doc.setDrawColor(99, 102, 241); // Indigo
+          doc.circle(lineX, y - 1, 2, 'FD');
+
+          // Content (Right)
           doc.setFontSize(10); doc.setTextColor(15, 23, 42); doc.setFont(undefined, 'bold');
-          doc.text(o.type.toUpperCase(), margin + 5, y + 6);
+          doc.text(t.title, lineX + 10, y);
 
-          doc.setFontSize(9); doc.setTextColor(51, 65, 85); doc.setFont(undefined, 'normal');
-          const obsText = doc.splitTextToSize(o.observation, pageWidth - (margin * 2) - 10);
-          doc.text(obsText, margin + 5, y + 12);
+          if (t.description) {
+            y += 5;
+            doc.setFontSize(9); doc.setTextColor(71, 85, 105); doc.setFont(undefined, 'normal');
+            const desc = doc.splitTextToSize(t.description, pageWidth - lineX - 15 - margin);
+            doc.text(desc, lineX + 10, y);
+            y += (desc.length * 4.5);
+          } else {
+            y += 5;
+          }
+          y += 10; // Spacing
+        });
+        y += 10;
+      }
 
-          const height = (obsText.length * 4) + 15;
-          // If box is bigger than initial rect, redraw (basic logic, simplified for this demo)
-          y += height + 5;
+      // 4. Witness Profiles
+      if (witnesses.length > 0) {
+        y = checkPageBreak(y);
+        doc.setFontSize(12); doc.setTextColor(15, 23, 42); doc.setFont(undefined, 'bold');
+        doc.text("03 // WITNESS RELIABILITY PROFILES", margin, y);
+        y += 15;
+
+        witnesses.forEach(w => {
+          y = checkPageBreak(y, 30);
+
+          // Name
+          doc.setFontSize(10); doc.setTextColor(15, 23, 42); doc.setFont(undefined, 'bold');
+          doc.text(w.name.toUpperCase(), margin, y);
+
+          // Reliability Bar
+          // Background
+          doc.setFillColor(226, 232, 240);
+          doc.rect(pageWidth - margin - 50, y - 3, 50, 4, 'F');
+          // Fill
+          const scoreColor = w.reliabilityScore > 80 ? [16, 185, 129] : [245, 158, 11];
+          doc.setFillColor(scoreColor[0], scoreColor[1], scoreColor[2]);
+          doc.rect(pageWidth - margin - 50, y - 3, 50 * (w.reliabilityScore / 100), 4, 'F');
+
+          doc.setFontSize(7); doc.setTextColor(100, 116, 139);
+          doc.text(`${w.reliabilityScore}% CREDIBILITY`, pageWidth - margin - 52, y, { align: 'right' });
+
+          y += 8;
+
+          // Statement Quote
+          doc.setDrawColor(226, 232, 240);
+          doc.setLineWidth(0.5);
+          doc.line(margin, y, margin, y + 10); // Quote bar
+
+          doc.setFontSize(9); doc.setTextColor(71, 85, 105); doc.setFont(undefined, 'italic');
+          const stmt = doc.splitTextToSize(`"${w.statement}"`, pageWidth - margin - 15);
+          doc.text(stmt, margin + 5, y + 3);
+
+          y += (stmt.length * 5) + 15;
         });
       }
 
-      // Page Numbers
+      // 5. AI Analysis
+      if (observations.length > 0) {
+        y = checkPageBreak(y);
+        doc.setFontSize(12); doc.setTextColor(15, 23, 42); doc.setFont(undefined, 'bold');
+        doc.text("04 // AI FORENSIC CORRELATIONS", margin, y);
+        y += 15;
+
+        observations.forEach(o => {
+          y = checkPageBreak(y, 40);
+
+          // Priority Pill
+          const pColor = o.priority === 'high' ? [244, 63, 94] : o.priority === 'medium' ? [245, 158, 11] : [99, 102, 241];
+          doc.setFillColor(pColor[0], pColor[1], pColor[2]);
+          doc.roundedRect(margin, y - 3, 16, 4, 1, 1, 'F');
+          doc.setTextColor(255, 255, 255); doc.setFontSize(6); doc.setFont(undefined, 'bold');
+          doc.text(o.priority.toUpperCase(), margin + 8, y, { align: 'center' });
+
+          // Type
+          doc.setTextColor(15, 23, 42); doc.setFontSize(10);
+          doc.text(o.type.toUpperCase(), margin + 20, y);
+
+          y += 8;
+
+          // Content
+          doc.setFontSize(9); doc.setTextColor(51, 65, 85); doc.setFont(undefined, 'normal');
+          const obs = doc.splitTextToSize(o.observation, pageWidth - (margin * 2));
+          doc.text(obs, margin, y);
+          y += (obs.length * 5);
+
+          // Reasoning
+          doc.setFontSize(8); doc.setTextColor(100, 116, 139);
+          const reason = doc.splitTextToSize(`> ANALYSIS: ${o.reasoning}`, pageWidth - (margin * 2));
+          doc.text(reason, margin, y);
+          y += (reason.length * 4) + 15;
+        });
+      }
+
+      // Footer Page Nums
       const totalPages = (doc.internal as any).getNumberOfPages();
-      for (let i = 2; i <= totalPages; i++) { // Skip cover page
+      for (let i = 2; i <= totalPages; i++) {
         doc.setPage(i);
         doc.setFontSize(8);
         doc.setTextColor(148, 163, 184);
         doc.text(`PAGE ${i - 1} OF ${totalPages - 1}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
       }
 
-      doc.save(`${caseData.title.replace(/\s+/g, '_')}_FORENSIC_REPORT.pdf`);
+      doc.save(`${caseData.title.replace(/\s+/g, '_')}_FORENSIC_DOSSIER.pdf`);
+
     } catch (err) {
       console.error("PDF Export failed:", err);
       alert("PDF generation error.");
@@ -665,6 +721,12 @@ export const CaseDetail: React.FC<CaseDetailProps> = ({ caseId, user, onBack }) 
                   onChange={(e) => setNewWitness({ ...newWitness, name: e.target.value })}
                   required
                 />
+
+                {/* Voice Recorder Integration */}
+                <VoiceRecorder
+                  onTranscriptionComplete={(text) => setNewWitness(prev => ({ ...prev, statement: text }))}
+                />
+
                 <textarea
                   placeholder="Direct Quote Statement..."
                   rows={5}

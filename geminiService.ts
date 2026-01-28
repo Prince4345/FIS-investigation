@@ -16,7 +16,7 @@ export async function analyzeForensicCase(
 ) {
   // 🔥 STEP 2: Unified Simple Config (Prompt Engineering Approach)
   const model = genAI.getGenerativeModel({
-    model: "gemini-3-pro-preview",
+    model: "gemini-2.5-flash",
     generationConfig: {
       temperature: 0.2,
       responseMimeType: "application/json",

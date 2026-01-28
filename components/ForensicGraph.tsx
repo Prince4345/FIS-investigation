@@ -94,8 +94,10 @@ export const ForensicGraph: React.FC<ForensicGraphProps> = ({
     observations,
     onManualConnect
 }) => {
-    // Transform data into nodes and edges
-    const { nodes: initialNodes, edges: initialEdges } = useMemo(() => {
+    // ------------------------------------------------------------------
+    // 1. Data Transformation (Memoized)
+    // ------------------------------------------------------------------
+    const { allNodes, allEdges } = useMemo(() => {
         let nodes: Node[] = [];
         let edges: Edge[] = [];
 
@@ -103,7 +105,7 @@ export const ForensicGraph: React.FC<ForensicGraphProps> = ({
         const colSpacing = 400;
         const rowSpacing = 150;
 
-        // 1. Evidence Nodes (Left Column)
+        // A. Evidence Nodes (Left Column)
         evidence.forEach((e, i) => {
             nodes.push({
                 id: e.id,
@@ -113,10 +115,7 @@ export const ForensicGraph: React.FC<ForensicGraphProps> = ({
             });
         });
 
-        // 2. Timeline Nodes (Bottom - Optional, purely creating nodes if we want them connected later)
-        // Ignoring timeline for graph clarity unless linked
-
-        // 3. Witness Nodes (Right Column)
+        // B. Witness Nodes (Right Column)
         witnesses.forEach((w, i) => {
             nodes.push({
                 id: w.id,
@@ -126,24 +125,23 @@ export const ForensicGraph: React.FC<ForensicGraphProps> = ({
             });
         });
 
-        // 4. Observation Nodes (Center Column)
-        let obsY = 0;
+        // C. Observation Nodes (Center Column) & Edges
+        // These are the ones we want to "stream" in.
         observations.forEach((obs, i) => {
-            // Dynamically center observations based on connections if possible, otherwise stack
-            const yPos = i * (rowSpacing + 50); // Give them more room
+            const yPos = i * (rowSpacing + 50);
 
+            // Node
             nodes.push({
                 id: obs.id,
                 type: 'observation',
                 data: { label: obs.observation, confidence: obs.confidence },
                 position: { x: colSpacing, y: yPos },
+                hidden: true, // Start hidden!
             });
 
-            // Create Edges
+            // Edges for this observation
             obs.correlations.forEach((corr, idx) => {
-                // Check if the source node actually exists (important for error prevention)
                 const sourceExists = evidence.some(e => e.id === corr.refId) || witnesses.some(w => w.id === corr.refId);
-
                 if (sourceExists) {
                     edges.push({
                         id: `e-${obs.id}-${corr.refId}-${idx}`,
@@ -152,31 +150,97 @@ export const ForensicGraph: React.FC<ForensicGraphProps> = ({
                         animated: true,
                         style: { stroke: '#6366f1', strokeWidth: 2, opacity: 0.6 },
                         markerEnd: { type: MarkerType.ArrowClosed, color: '#6366f1' },
+                        hidden: true, // Start hidden!
                     });
                 }
             });
         });
 
-        return { nodes, edges };
+        return { allNodes: nodes, allEdges: edges };
     }, [evidence, witnesses, observations]);
 
-    const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-    const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
-    // Update nodes/edges when data changes
-    React.useEffect(() => {
-        setNodes(initialNodes);
-        // Only reset edges if we strictly want to sync.
-        // But if we want to keep manual edges, we need a better strategy.
-        // For now, let's just merge or reset.
-        // To allow manual connections to persist visually within the session:
-        setEdges((eds) => {
-            // Keep manual edges (those not generated from initialEdges IDs)
-            // But actually, update from parent is truth.
-            return initialEdges;
+    // ------------------------------------------------------------------
+    // 2. State for Streaming
+    // ------------------------------------------------------------------
+    const [nodes, setNodes, onNodesChange] = useNodesState([]);
+    const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+    const [isStreaming, setIsStreaming] = React.useState(false);
+
+    // We need access to the ReactFlow instance to trigger fitView animations
+    // but simplified, we can just let the library handle it or use a hook.
+    // For auto-fitting, we can use a key prop to force re-render or a useEffect.
+
+    // ------------------------------------------------------------------
+    // 3. Streaming Effect
+    // ------------------------------------------------------------------
+    const startStreaming = useCallback(() => {
+        if (observations.length === 0) {
+            // If no observations, just show static nodes
+            const staticNodes = allNodes.map(n => ({ ...n, hidden: false }));
+            setNodes(staticNodes);
+            setEdges([]);
+            return;
+        }
+
+        setIsStreaming(true);
+
+        // 1. Initial State: Show Evidence & Witnesses immediately
+        // Hide all observations initially
+        const initialVisibleNodes = allNodes.map(n => {
+            if (n.type === 'evidence' || n.type === 'witness') return { ...n, hidden: false };
+            return { ...n, hidden: true };
         });
-    }, [initialNodes, initialEdges, setNodes, setEdges]);
 
+        setNodes(initialVisibleNodes);
+        setEdges([]); // No edges initially
+
+        // 2. Animation Loop
+        let currentIndex = 0;
+
+        const streamNextValue = () => {
+            if (currentIndex >= observations.length) {
+                setIsStreaming(false);
+                return;
+            }
+
+            const currentObs = observations[currentIndex];
+
+            // Reveal this observation node
+            setNodes(nds => nds.map(n => {
+                if (n.id === currentObs.id) return { ...n, hidden: false };
+                return n;
+            }));
+
+            // Reveal edges connected to THIS observation
+            // We find edges in 'allEdges' where target is currentObs.id
+            const newEdges = allEdges.filter(e => e.target === currentObs.id).map(e => ({ ...e, hidden: false }));
+
+            setEdges(eds => [...eds, ...newEdges]);
+
+            currentIndex++;
+
+            // Schedule next drop
+            setTimeout(streamNextValue, 1200); // 1.2s delay for dramatic effect
+        };
+
+        // Start delay
+        setTimeout(streamNextValue, 1000);
+
+    }, [allNodes, allEdges, observations, setNodes, setEdges]);
+
+
+    // ------------------------------------------------------------------
+    // 4. Trigger Streaming on Load or Data Change
+    // ------------------------------------------------------------------
+    React.useEffect(() => {
+        startStreaming();
+    }, [startStreaming]);
+
+
+    // ------------------------------------------------------------------
+    // 5. Connect Handler
+    // ------------------------------------------------------------------
     const onConnect: OnConnect = useCallback(
         (params) => {
             setEdges((eds) => addEdge({ ...params, animated: true, style: { stroke: '#10b981', strokeWidth: 3 } }, eds));
@@ -189,15 +253,29 @@ export const ForensicGraph: React.FC<ForensicGraphProps> = ({
 
     return (
         <div className="h-[600px] w-full glass rounded-[2.5rem] overflow-hidden border border-white/5 relative bg-slate-950">
+            {/* Header / Controls */}
             <div className="absolute top-6 left-8 z-10 pointers-events-none">
                 <h3 className="text-white font-black text-2xl flex items-center gap-3 tracking-tighter">
-                    <span className="w-3 h-3 rounded-full bg-indigo-500 animate-pulse"></span>
+                    <span className={`w-3 h-3 rounded-full ${isStreaming ? 'bg-indigo-500 animate-ping' : 'bg-emerald-500'}`}></span>
                     DETECTIVE BOARD
                 </h3>
-                <p className="text-slate-500 text-xs font-mono uppercase tracking-[0.3em] ml-6 mt-1">
-                    Visual Intelligence Web
+                <p className="text-slate-500 text-xs font-mono uppercase tracking-[0.3em] ml-6 mt-1 flex items-center gap-2">
+                    {isStreaming ? 'ANALYSIS IN PROGRESS...' : 'VISUAL INTELLIGENCE READY'}
                 </p>
             </div>
+
+            {/* Replay Button */}
+            {!isStreaming && observations.length > 0 && (
+                <div className="absolute top-6 right-8 z-10">
+                    <button
+                        onClick={startStreaming}
+                        className="bg-slate-800/80 hover:bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all flex items-center gap-2 backdrop-blur-md border border-white/10"
+                    >
+                        <i className="fas fa-play"></i> Replay Analysis
+                    </button>
+                </div>
+            )}
+
             <ReactFlow
                 nodes={nodes}
                 edges={edges}
@@ -205,7 +283,8 @@ export const ForensicGraph: React.FC<ForensicGraphProps> = ({
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
                 onConnect={onConnect}
-                fitView
+                fitView // This might jump around during streaming, but ensures visibility
+                fitViewOptions={{ padding: 0.2, duration: 800 }} // Smooth transition
                 className="bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black"
                 defaultEdgeOptions={{ type: 'smoothstep' }}
                 proOptions={{ hideAttribution: true }}
